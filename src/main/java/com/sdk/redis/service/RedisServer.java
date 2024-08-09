@@ -2,9 +2,11 @@ package com.sdk.redis.service;
 
 import cn.hutool.core.util.BooleanUtil;
 import com.sdk.redis.aop.annotation.ValidateParams;
+import com.sdk.redis.operation.HashOpr;
 import com.sdk.redis.operation.ListOpr;
 import com.sdk.redis.operation.RedisOpr;
 import com.sdk.redis.operation.StrOpr;
+import com.sdk.redis.operation.impl.DefaultHashOpr;
 import com.sdk.redis.operation.impl.DefaultListOpr;
 import com.sdk.redis.operation.impl.DefaultStrOpr;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,9 @@ import java.util.function.Function;
  *  // todo 进行参数检查, 异常抛出
  *  // todo 在 SessionCallback 的 execute 方法中，异常处理是关键。例如，可以捕捉并处理 DataAccessException，并将其转化为自定义异常，以便于调用者理解发生了什么问题。
  *  // todo 确保你使用 clazz.cast(obj) 时，obj 类型确实能被转换为 clazz 类型。如果类型不匹配，可能会引发 ClassCastException。
+ *  // todo 每一条redis命令在执行的时候，都可能发生一些异常
+ *  // todo RedisSystemException， 类型转换异常
+ *  // todo 对于hash类型的 增加/删除一个对象， 采用 lua脚本
  * @author Lzzh
  * @version 1.0
  * @description: Redis服务类，注册为Service组件提供服务
@@ -39,20 +44,21 @@ import java.util.function.Function;
 @Slf4j
 public class  RedisServer implements RedisOpr {
 
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private StrOpr strOpr;
     private ListOpr listOpr;
+    private HashOpr hashOpr;
     @Autowired
     public RedisServer(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
-
     }
 
     @PostConstruct
     private void init() {
         this.strOpr = new DefaultStrOpr(redisTemplate);
         this.listOpr = new DefaultListOpr(redisTemplate);
+        this.hashOpr = new DefaultHashOpr(redisTemplate);
     }
 
     public StrOpr strOpr() {
@@ -61,6 +67,10 @@ public class  RedisServer implements RedisOpr {
 
     public ListOpr listOpr() {
         return listOpr;
+    }
+
+    public HashOpr hashOpr() {
+        return this.hashOpr;
     }
 
     @Override
@@ -158,4 +168,5 @@ public class  RedisServer implements RedisOpr {
     public boolean isExpireKey(String key) {
         return this.has(key);
     }
+
 }
